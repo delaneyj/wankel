@@ -1,0 +1,6 @@
+[package]
+name = "wankel"
+version = "0.1.0"
+authors = ["delan"]
+
+[dependencies]
