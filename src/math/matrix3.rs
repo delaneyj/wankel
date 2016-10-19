@@ -71,22 +71,20 @@ impl Matrix3 {
         let determinant = n11 * t11 + n21 * t12 + n31 * t13;
 
         if determinant == 0.0 {
-            panic!("Can't invert matrix, determinant is 0");
-            // return Matrix3::IDENTITY;
-        }
+            println!("Matrix3::inverse> Can't invert matrix, determinant is 0");
+            Matrix3::IDENTITY
+        } else {
+            let determinant_inverse = 1.0 / determinant;
 
-        let determinant_inverse = 1.0 / determinant;
-
-        Matrix3 {
-            elements: [t11 * determinant_inverse,
-                       (n31 * n23 - n33 * n21) * determinant_inverse,
-                       (n32 * n21 - n31 * n22) * determinant_inverse,
-                       t12 * determinant_inverse,
-                       (n33 * n11 - n31 * n13) * determinant_inverse,
-                       (n31 * n12 - n32 * n11) * determinant_inverse,
-                       t13 * determinant_inverse,
-                       (n21 * n13 - n23 * n11) * determinant_inverse,
-                       (n22 * n11 - n21 * n12) * determinant_inverse],
+            Matrix3::from_columns((t11 * determinant_inverse,
+                                   (n31 * n23 - n33 * n21) * determinant_inverse,
+                                   (n32 * n21 - n31 * n22) * determinant_inverse),
+                                  (t12 * determinant_inverse,
+                                   (n33 * n11 - n31 * n13) * determinant_inverse,
+                                   (n31 * n12 - n32 * n11) * determinant_inverse),
+                                  (t13 * determinant_inverse,
+                                   (n21 * n13 - n23 * n11) * determinant_inverse,
+                                   (n22 * n11 - n21 * n12) * determinant_inverse))
         }
     }
 
@@ -120,6 +118,7 @@ impl Matrix3 {
 #[cfg(test)]
 mod tests {
     use super::Matrix3;
+    use math::{Vector3, Matrix4};
 
     const TOLERANCE: f32 = 0.0001;
 
@@ -191,89 +190,68 @@ mod tests {
     }
 
 
-    // test( "determinant", function() {
-    // 	var a = new THREE.Matrix3();
-    // 	assert_eq!( a.determinant() == 1);
+    #[test]
+    fn determinant() {
+        let mut a = Matrix3::IDENTITY;
+        assert_eq!(a.determinant(), 1.0);
 
-    // 	a.elements[0] = 2;
-    // 	assert_eq!( a.determinant() == 2);
+        a.elements[0] = 2.0;
+        assert_eq!(a.determinant(), 2.0);
 
-    // 	a.elements[0] = 0;
-    // 	assert_eq!( a.determinant() == 0);
+        a.elements[0] = 0.0;
+        assert_eq!(a.determinant(), 0.0);
 
-    // 	// calculated via http://www.euclideanspace.com/maths/algebra/matrix/functions/determinant/threeD/index.htm
-    // 	a.set( 2, 3, 4, 5, 13, 7, 8, 9, 11 );
-    // 	assert_eq!( a.determinant() == -73);
-    // });
+        // calculated via http://www.euclideanspace.com/maths/algebra/matrix/functions/determinant/threeD/index.htm
+        a = Matrix3::from_rows((2.0, 3.0, 4.0), (5.0, 13.0, 7.0), (8.0, 9.0, 11.0));
+        assert_eq!(a.determinant(), -73.0);
+    }
 
 
-    // test( "getInverse", function() {
-    // 	var identity = new THREE.Matrix3();
-    // 	var identity4 = new THREE.Matrix4();
-    // 	var a = new THREE.Matrix3();
-    // 	var b = new THREE.Matrix3().set( 0, 0, 0, 0, 0, 0, 0, 0, 0 );
-    // 	var c = new THREE.Matrix3().set( 0, 0, 0, 0, 0, 0, 0, 0, 0 );
+    #[test]
+    fn inverse() {
+        let identity = Matrix3::IDENTITY;
+        let inverse_identity = identity.inverse();
+        assert!(matrix3_close_enough(&identity, &inverse_identity));
 
-    // 	b.getInverse( a, false );
-    // 	assert_eq!( matrix3_close_enough( a, identity ));
+        let zero = Matrix3::from_columns((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0));
+        assert!(matrix3_close_enough(&zero.inverse(), &identity));
 
-    // 	try {
-    // 		b.getInverse( c, true );
-    // 		assert_eq!( false); // should never get here.
-    // 	}
-    // 	catch( err ) {
-    // 		assert_eq!( true);
-    // 	}
+        let test_matrices = vec![Matrix4::from_rotation_x(0.3),
+                                 Matrix4::from_rotation_x(-0.3),
+                                 Matrix4::from_rotation_y(0.3),
+                                 Matrix4::from_rotation_y(-0.3),
+                                 Matrix4::from_rotation_z(0.3),
+                                 Matrix4::from_rotation_z(-0.3),
+                                 Matrix4::from_scale(&Vector3::new(1.0, 2.0, 3.0)),
+                                 Matrix4::from_scale(&Vector3::new(0.125, 0.5, 1.0 / 3.0))];
 
-    // 	var testMatrices = [
-    // 		new THREE.Matrix4().makeRotationX( 0.3 ),
-    // 		new THREE.Matrix4().makeRotationX( -0.3 ),
-    // 		new THREE.Matrix4().makeRotationY( 0.3 ),
-    // 		new THREE.Matrix4().makeRotationY( -0.3 ),
-    // 		new THREE.Matrix4().makeRotationZ( 0.3 ),
-    // 		new THREE.Matrix4().makeRotationZ( -0.3 ),
-    // 		new THREE.Matrix4().makeScale( 1, 2, 3 ),
-    // 		new THREE.Matrix4().makeScale( 1/8, 1/2, 1/3 )
-    // 		];
+        for m in test_matrices {
+            let a = Matrix3::from_matrix4(&m);
+            let m_inverse3 = a.inverse();
+            let m_inverse = m_inverse3.to_matrix4();
 
-    // 	for( var i = 0, il = testMatrices.length; i < il; i ++ ) {
-    // 		var m = testMatrices[i];
+            // the determinant of the inverse should be the reciprocal
+            assert!((a.determinant() * m_inverse3.determinant() - 1.0).abs() < 0.0001);
+            assert!((m.determinant() * m_inverse.determinant() - 1.0).abs() < 0.0001);
 
-    // 		a.setFromMatrix4( m );
-    // 		var mInverse3 = b.getInverse( a );
 
-    // 		var mInverse = toMatrix4( mInverse3 );
+            let m_product = m.multiply(&m_inverse);
+            assert!((m_product.determinant() - 1.0).abs() < 0.0001);
+            println!("m:{:?}\nproduct:{:?}", m, m_product);
+            assert!(matrix3_close_enough(&Matrix3::from_matrix4(&m_product), &identity));
+        }
+    }
 
-    // 		// the determinant of the inverse should be the reciprocal
-    // 		assert_eq!( Math.abs( a.determinant() * mInverse3.determinant() - 1 ) < 0.0001);
-    // 		assert_eq!( Math.abs( m.determinant() * mInverse.determinant() - 1 ) < 0.0001);
+    #[test]
+    fn transpose() {
+        let a = Matrix3::IDENTITY;
+        let b = a.transpose();
+        assert!(matrix3_close_enough(&a, &b));
 
-    // 		var mProduct = new THREE.Matrix4().multiplyMatrices( m, mInverse );
-    // 		assert_eq!( Math.abs( mProduct.determinant() - 1 ) < 0.0001);
-    // 		assert_eq!( matrix3_close_enough( mProduct, identity4 ));
-    // 	}
-    // });
-
-    // test( "transpose", function() {
-    // 	var a = new THREE.Matrix3();
-    // 	var b = a.clone().transpose();
-    // 	assert_eq!( matrix3_close_enough( a, b ));
-
-    // 	b = new THREE.Matrix3().set( 0, 1, 2, 3, 4, 5, 6, 7, 8 );
-    // 	var c = b.clone().transpose();
-    // 	assert_eq!( ! matrix3_close_enough( b, c ));
-    // 	c.transpose();
-    // 	assert_eq!( matrix3_close_enough( b, c ));
-    // });
-
-    // test( "clone", function() {
-    // 	var a = new THREE.Matrix3().set( 0, 1, 2, 3, 4, 5, 6, 7, 8 );
-    // 	var b = a.clone();
-
-    // 	assert_eq!( matrix3_close_enough( a, b ));
-
-    // 	// ensure that it is a true copy
-    // 	a.elements[0] = 2;
-    // 	assert_eq!( ! matrix3_close_enough( a, b ));
-    // });
+        let c = Matrix3::from_rows((0.0, 1.0, 2.0), (3.0, 4.0, 5.0), (6.0, 7.0, 8.0));
+        let d = c.transpose();
+        assert!(!matrix3_close_enough(&c, &d));
+        let e = d.transpose();
+        assert!(matrix3_close_enough(&c, &e));
+    }
 }
