@@ -2,7 +2,7 @@
 name = "wankel"
 version = "0.0.1"
 authors = ["delaneyj"]
-license = "mit"
+license = "MIT"
 repository = "https://github.com/delaneyj/wankel"
 description = "A rustification of the three.js codebase."
 
