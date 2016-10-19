@@ -5,7 +5,7 @@ use math::Quaternion;
 use math::Spherical;
 use cameras::Camera;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
