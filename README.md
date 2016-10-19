@@ -1,5 +1,5 @@
 # wankel
-![logo](https://raw.githubusercontent.com/delaneyj/wankel/master/art/logo.svg)
+<img src="art/logo.svg"/>
 
 ## A rustification of the three.js codebase
 
