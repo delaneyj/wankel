@@ -1,6 +1,5 @@
 # wankel
-<img src="art/logo.svg"/>
-
+![logo](art/logo.png)
 ## A rustification of the three.js codebase
 
 ### Why?
