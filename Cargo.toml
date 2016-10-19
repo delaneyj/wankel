@@ -1,6 +1,9 @@
 [package]
 name = "wankel"
-version = "0.1.0"
-authors = ["delan"]
+version = "0.0.1"
+authors = ["delaneyj"]
+license = "mit"
+repository = "https://github.com/delaneyj/wankel"
+description = "A rustification of the three.js codebase."
 
 [dependencies]
