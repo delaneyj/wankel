@@ -1,3 +1,5 @@
+use std::f32::{INFINITY, NEG_INFINITY};
+
 use math::Euler;
 use math::Matrix3;
 use math::Matrix4;
@@ -18,10 +20,23 @@ impl Vector3 {
         y: 0.0,
         z: 0.0,
     };
+
     pub const ONE: Vector3 = Vector3 {
         x: 1.0,
         y: 1.0,
         z: 1.0,
+    };
+
+    pub const INFINITY: Vector3 = Vector3 {
+        x: INFINITY,
+        y: INFINITY,
+        z: INFINITY,
+    };
+
+    pub const NEG_INFINITY: Vector3 = Vector3 {
+        x: NEG_INFINITY,
+        y: NEG_INFINITY,
+        z: NEG_INFINITY,
     };
 
     pub fn new(x: f32, y: f32, z: f32) -> Vector3 {

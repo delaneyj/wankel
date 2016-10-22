@@ -12,14 +12,12 @@ impl Sphere {
         radius: 0.0,
     };
 
-    pub fn new(center: Vector3, radius: f32) -> Sphere {
+    pub fn new(center: &Vector3, radius: f32) -> Sphere {
         Sphere {
-            center: center,
+            center: *center,
             radius: radius,
         }
     }
-
-
 
     pub fn empty(&self) -> bool {
         self.radius <= 0.0
@@ -84,4 +82,90 @@ impl Sphere {
 #[cfg(test)]
 mod tests {
     use super::Sphere;
+    use math::{Vector3, Plane, Matrix4, Box3};
+
+    #[test]
+    pub fn constructor() {
+        let a = Sphere::DEFAULT;
+        assert_eq!(a.center, Vector3::ZERO);
+        assert_eq!(a.radius, 0.0);
+
+        let b = Sphere::new(&Vector3::ONE, 1.0);
+        assert_eq!(b.center, Vector3::ONE);
+        assert_eq!(b.radius, 1.0);
+    }
+
+
+    #[test]
+    pub fn contains_point() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+        assert_eq!(a.contains_point(&Vector3::ZERO), false);
+        assert_eq!(a.contains_point(&Vector3::ONE), true);
+    }
+
+    #[test]
+    pub fn distance_to_point() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+        assert!((a.distance_to_point(&Vector3::ZERO) - 0.7320) < 0.001);
+        assert_eq!(a.distance_to_point(&Vector3::ONE), -1.0);
+    }
+
+    #[test]
+    pub fn intersects_sphere() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+        let b = Sphere::new(&Vector3::ZERO, 1.0);
+        let c = Sphere::new(&Vector3::ZERO, 0.25);
+        assert_eq!(a.intersects_sphere(&b), true);
+        assert_eq!(a.intersects_sphere(&c), false);
+    }
+
+    #[test]
+    pub fn intersects_plane() {
+        let a = Sphere::new(&Vector3::ZERO, 1.0);
+        let b = Plane::new(&Vector3::new(0.0, 1.0, 0.0), 1.0);
+        let c = Plane::new(&Vector3::new(0.0, 1.0, 0.0), 1.25);
+        let d = Plane::new(&Vector3::new(0.0, -1.0, 0.0), 1.25);
+
+        assert_eq!(a.intersects_plane(&b), true);
+        assert_eq!(a.intersects_plane(&c), false);
+        assert_eq!(a.intersects_plane(&d), false);
+    }
+
+    #[test]
+    pub fn clamp_point() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+
+        assert_eq!(a.clamp_point(&Vector3::new(1.0, 1.0, 3.0)),
+                   Vector3::new(1.0, 1.0, 2.0));
+        assert_eq!(a.clamp_point(&Vector3::new(1.0, 1.0, -3.0)),
+                   Vector3::new(1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    pub fn bounding_box() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+        assert_eq!(a.bounding_box(),
+                   Box3::new(&Vector3::ZERO, &Vector3::new(2.0, 2.0, 2.0)));
+
+        let b = Sphere::new(&Vector3::ZERO, 0.0);
+        assert_eq!(b.bounding_box(), Box3::new(&Vector3::ZERO, &Vector3::ZERO));
+    }
+
+    #[test]
+    pub fn apply_matrix4() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+        let m = Matrix4::from_translation(&Vector3::new(1.0, -2.0, 1.0));
+
+        let applied_bounding_box = a.apply_matrix4(&m).bounding_box();
+        assert_eq!(applied_bounding_box, a.bounding_box().apply_matrix4(&m));
+    }
+
+
+    #[test]
+    pub fn translate() {
+        let a = Sphere::new(&Vector3::ONE, 1.0);
+
+        let b = a.translate(&Vector3::ONE.negate());
+        assert_eq!(b.center, Vector3::ZERO);
+    }
 }

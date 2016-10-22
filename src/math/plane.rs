@@ -15,4 +15,11 @@ impl Plane {
         },
         constant: 0.0,
     };
+
+    pub fn new(normal: &Vector3, constant: f32) -> Plane {
+        Plane {
+            normal: *normal,
+            constant: constant,
+        }
+    }
 }
