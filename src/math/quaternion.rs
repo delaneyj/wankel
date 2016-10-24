@@ -381,3 +381,347 @@ impl Quaternion {
 
     // }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Quaternion;
+    use math::{Euler, EulerOrder, Vector3, Matrix4};
+    use std::f32::consts::PI;
+
+    const EULER_ANGLES: Euler = Euler {
+        x: 0.1,
+        y: -0.3,
+        z: 0.25,
+        order: EulerOrder::XYZ,
+    };
+
+    fn quaternions_subtract(a: &Quaternion, b: &Quaternion) -> Quaternion {
+        Quaternion::new(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w)
+    }
+
+    #[test]
+    fn constructor() {
+        let a = Quaternion::DEFAULT;
+        assert_eq!(a.x, 0.0);
+        assert_eq!(a.y, 0.0);
+        assert_eq!(a.z, 0.0);
+        assert_eq!(a.w, 1.0);
+
+        let b = Quaternion::new(1.0, 2.0, 4.0, 8.0);
+        assert_eq!(b.x, 1.0);
+        assert_eq!(b.y, 2.0);
+        assert_eq!(b.z, 4.0);
+        assert_eq!(b.w, 8.0);
+    }
+
+    #[test]
+    fn from_axis_angle() {
+
+        let zero = Quaternion::DEFAULT;
+
+        let a = Quaternion::from_axis_angle(&Vector3::new(1.0, 0.0, 0.0), 0.0);
+        assert_eq!(a, zero);
+        let b = Quaternion::from_axis_angle(&Vector3::new(0.0, 1.0, 0.0), 0.0);
+        assert_eq!(b, zero);
+        let c = Quaternion::from_axis_angle(&Vector3::new(0.0, 0.0, 1.0), 0.0);
+        assert_eq!(c, zero);
+
+        let b1 = Quaternion::from_axis_angle(&Vector3::new(1.0, 0.0, 0.0), PI);
+        assert_eq!(a == b1, false);
+        let b2 = Quaternion::from_axis_angle(&Vector3::new(1.0, 0.0, 0.0), -PI);
+        assert_eq!(a, b2);
+
+        let b3 = b1.multiply(&b2);
+        assert_eq!(a, b3);
+    }
+
+    #[test]
+    fn from_euler_from_quaternion() {
+        let angles = vec![Vector3::new(1.0, 0.0, 0.0),
+                          Vector3::new(0.0, 1.0, 0.0),
+                          Vector3::new(0.0, 0.0, 1.0)];
+
+        // ensure euler conversion to/from Quaternion matches.
+        let orders = vec![EulerOrder::XYZ,
+                          EulerOrder::YXZ,
+                          EulerOrder::ZXY,
+                          EulerOrder::ZYX,
+                          EulerOrder::YZX,
+                          EulerOrder::XZY];
+
+        for order in orders {
+            for angle in &angles {
+                let e = Euler::from_vector3(&angle, &order);
+                let q = Quaternion::from_euler(&e);
+                let euler2 = Euler::from_quaternion(&q, &order);
+
+                let new_angle = Vector3::from_euler(&euler2);
+                assert_eq!(new_angle.distance_to(&angle) < 0.001, true);
+            }
+        }
+    }
+
+    #[test]
+    fn from_euler_from_rotation_matrix() {
+        // ensure euler conversion for Quaternion matches that of Matrix4
+        let orders = vec![EulerOrder::XYZ,
+                          EulerOrder::YXZ,
+                          EulerOrder::ZXY,
+                          EulerOrder::ZYX,
+                          EulerOrder::YZX,
+                          EulerOrder::XZY];
+
+        for order in orders {
+            let e = Euler { order: order, ..EULER_ANGLES };
+            let q = Quaternion::from_euler(&e);
+            let m = Matrix4::rotation_from_euler(&EULER_ANGLES);
+            let q2 = Quaternion::from_rotation_matrix(&m);
+
+            let result = quaternions_subtract(&q, &q2).length();
+            assert_eq!(result < 0.001, true);
+        }
+    }
+
+    #[test]
+    fn normalize_length_length_squared() {
+        let a = Quaternion::new(2.0, 3.0, 4.0, 5.0);
+        assert!(a.length() != 1.0);
+        assert!(a.length_squared() != 1.0);
+
+        let b = a.normalized();
+        assert!(b.length() == 1.0);
+        assert!(b.length_squared() == 1.0);
+
+        let c = Quaternion::new(0.0, 0.0, 0.0, 0.0);
+        assert!(c.length_squared() == 0.0);
+        assert!(c.length() == 0.0);
+
+        let d = c.normalized();
+        assert!(d.length_squared() == 1.0);
+        assert!(d.length() == 1.0);
+    }
+
+    #[test]
+    fn inverse_conjugate() {
+        let a = Quaternion::new(2.0, 3.0, 4.0, 5.0);
+        let b = a.conjugate();
+        assert_eq!(a.x, -b.x);
+        assert_eq!(a.y, -b.y);
+        assert_eq!(a.z, -b.z);
+        assert_eq!(a.w, b.w);
+    }
+
+    #[test]
+    fn multiply() {
+        let angles = vec![Vector3::new(1.0, 0.0, 0.0),
+                          Vector3::new(0.0, 1.0, 0.0),
+                          Vector3::new(0.0, 0.0, 1.0)];
+
+        let eulers: Vec<Euler> =
+            angles.iter().map(|v| Euler::from_vector3(&v, &EulerOrder::XYZ)).collect();
+        let ref e1 = eulers[0];
+        let ref e2 = eulers[1];
+        let ref e3 = eulers[2];
+
+        let m1 = Matrix4::rotation_from_euler(&e1);
+        let m2 = Matrix4::rotation_from_euler(&e2);
+        let m3 = Matrix4::rotation_from_euler(&e3);
+        let m = m1.multiply(&m2).multiply(&m3);
+        let q_from_m = Quaternion::from_rotation_matrix(&m);
+
+        let quaternions: Vec<Quaternion> =
+            eulers.iter().map(|e| Quaternion::from_euler(&e)).collect();
+        let ref q1 = quaternions[0];
+        let ref q2 = quaternions[1];
+        let ref q3 = quaternions[2];
+        let q = q1.multiply(&q2).multiply(&q3);
+
+        let result = quaternions_subtract(&q, &q_from_m).length();
+        assert!(result < 0.001);
+    }
+
+    #[test]
+    fn multiply_vector3() {
+        let angles = vec![Vector3::new(1.0, 0.0, 0.0),
+                          Vector3::new(0.0, 1.0, 0.0),
+                          Vector3::new(0.0, 0.0, 1.0)];
+
+        let orders = vec![EulerOrder::XYZ,
+                          EulerOrder::YXZ,
+                          EulerOrder::ZXY,
+                          EulerOrder::ZYX,
+                          EulerOrder::YZX,
+                          EulerOrder::XZY];
+
+
+        // ensure euler conversion for Quaternion matches that of Matrix4
+        for angle in &angles {
+            for order in &orders {
+                let e = Euler::from_vector3(&angle, &order);
+                let q = Quaternion::from_euler(&e);
+                let m = Matrix4::rotation_from_euler(&e);
+
+                let v0 = Vector3::new(1.0, 0.0, 0.0);
+                let qv = v0.apply_quaternion(&q);
+                let mv = v0.apply_matrix4(&m);
+
+                assert!(qv.distance_to(&mv) < 0.001);
+            }
+        }
+    }
+
+
+    #[test]
+    fn equals() {
+        let x = 2.0;
+        let y = 3.0;
+        let z = 4.0;
+        let w = 5.0;
+        let a = Quaternion::new(x, y, z, w);
+        let b = Quaternion::new(-x, -y, -z, -w);
+
+        assert!(a.x != b.x);
+        assert!(a.y != b.y);
+
+        assert!(a != b);
+        assert!(b != a);
+    }
+
+    // function doSlerpObject( aArr, bArr, t ) {
+    //
+    // var a = new THREE.Quaternion().fromArray( aArr ),
+    // b = new THREE.Quaternion().fromArray( bArr ),
+    // c = new THREE.Quaternion().fromArray( aArr );
+    //
+    // c.slerp( b, t );
+    //
+    // return {
+    //
+    // equals: function( x, y, z, w, maxError ) {
+    //
+    // if ( maxError === undefined ) maxError = Number.EPSILON;
+    //
+    // return 	Math.abs( x - c.x ) <= maxError &&
+    // Math.abs( y - c.y ) <= maxError &&
+    // Math.abs( z - c.z ) <= maxError &&
+    // Math.abs( w - c.w ) <= maxError;
+    //
+    // },
+    //
+    // length: c.length(),
+    //
+    // dotA: c.dot( a ),
+    // dotB: c.dot( b )
+    //
+    // };
+    //
+    // };
+    //
+    // function doSlerpArray( a, b, t ) {
+    //
+    // var result = [ 0, 0, 0, 0 ];
+    //
+    // THREE.Quaternion.slerpFlat( result, 0, a, 0, b, 0, t );
+    //
+    // function arrDot( a, b ) {
+    //
+    // return 	a[ 0 ] * b[ 0 ] + a[ 1 ] * b[ 1 ] +
+    // a[ 2 ] * b[ 2 ] + a[ 3 ] * b[ 3 ];
+    //
+    // }
+    //
+    // return {
+    //
+    // equals: function( x, y, z, w, maxError ) {
+    //
+    // if ( maxError === undefined ) maxError = Number.EPSILON;
+    //
+    // return 	Math.abs( x - result[ 0 ] ) <= maxError &&
+    // Math.abs( y - result[ 1 ] ) <= maxError &&
+    // Math.abs( z - result[ 2 ] ) <= maxError &&
+    // Math.abs( w - result[ 3 ] ) <= maxError;
+    //
+    // },
+    //
+    // length: Math.sqrt( arrDot( result, result ) ),
+    //
+    // dotA: arrDot( result, a ),
+    // dotB: arrDot( result, b )
+    //
+    // };
+    //
+    // }
+    //
+    // function slerpTestSkeleton( doSlerp, maxError ) {
+    //
+    // var a, b, result;
+    //
+    // a = [
+    // 0.6753410084407496,
+    // 0.4087830051091744,
+    // 0.32856700410659473,
+    // 0.5185120064806223,
+    // ];
+    //
+    // b = [
+    // 0.6602792107657797,
+    // 0.43647413932562285,
+    // 0.35119011210236006,
+    // 0.5001871596632682
+    // ];
+    //
+    // var maxNormError = 0;
+    //
+    // function isNormal( result ) {
+    //
+    // var normError = Math.abs( 1 - result.length );
+    // maxNormError = Math.max( maxNormError, normError );
+    // return normError <= maxError;
+    //
+    // }
+    //
+    // result = doSlerp( a, b, 0 );
+    // assert!( result.equals(
+    // a[ 0 ], a[ 1 ], a[ 2 ], a[ 3 ], 0 ), "Exactly A @ t = 0" );
+    //
+    // result = doSlerp( a, b, 1 );
+    // assert!( result.equals(
+    // b[ 0 ], b[ 1 ], b[ 2 ], b[ 3 ], 0 ), "Exactly B @ t = 1" );
+    //
+    // result = doSlerp( a, b, 0.5 );
+    // assert!( Math.abs( result.dotA - result.dotB ) <= Number.EPSILON, "Symmetry at 0.5" );
+    // assert!( isNormal( result ), "Approximately normal (at 0.5)" );
+    //
+    // result = doSlerp( a, b, 0.25 );
+    // assert!( result.dotA > result.dotB, "Interpolating at 0.25" );
+    // assert!( isNormal( result ), "Approximately normal (at 0.25)" );
+    //
+    // result = doSlerp( a, b, 0.75 );
+    // assert!( result.dotA < result.dotB, "Interpolating at 0.75" );
+    // assert!( isNormal( result ), "Approximately normal (at 0.75)" );
+    //
+    // var D = Math.SQRT1_2;
+    //
+    // result = doSlerp( [ 1, 0, 0, 0 ], [ 0, 0, 1, 0 ], 0.5 );
+    // assert!( result.equals( D, 0, D, 0 ), "X/Z diagonal from axes" );
+    // assert!( isNormal( result ), "Approximately normal (X/Z diagonal)" );
+    //
+    // result = doSlerp( [ 0, D, 0, D ], [ 0, -D, 0, D ], 0.5 );
+    // assert!( result.equals( 0, 0, 0, 1 ), "W-Unit from diagonals" );
+    // assert!( isNormal( result ), "Approximately normal (W-Unit)" );
+    // }
+    //
+    //
+    // #[test]
+    // fn slerp() {
+    // slerpTestSkeleton( doSlerpObject, Number.EPSILON );
+
+    // } );
+
+    // test( "slerpFlat", function() {
+
+    // slerpTestSkeleton( doSlerpArray, Number.EPSILON );
+
+    // } );
+
+}

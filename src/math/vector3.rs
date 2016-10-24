@@ -362,6 +362,14 @@ impl Vector3 {
         (self.x - v.x).abs() + (self.y - v.y).abs() + (self.z - v.z).abs()
     }
 
+    pub fn from_euler(e: &Euler) -> Vector3 {
+        Vector3 {
+            x: e.x,
+            y: e.y,
+            z: e.z,
+        }
+    }
+
     pub fn from_spherical(s: &Spherical) -> Vector3 {
         let sin_phi_radius = s.phi.sin() * s.radius;
         Vector3 {
@@ -400,5 +408,263 @@ impl Vector3 {
         vec.push(self.y);
         vec.push(self.z);
         vec
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::f32::consts::PI;
+    use math::*;
+
+    const X: f32 = 2.0;
+    const Y: f32 = 3.0;
+    const Z: f32 = 4.0;
+
+    #[test]
+    fn constructor() {
+        let a = Vector3::ZERO;
+        assert_eq!(a.x, 0.0);
+        assert_eq!(a.y, 0.0);
+        assert_eq!(a.z, 0.0);
+
+        let b = Vector3::new(X, Y, Z);
+        assert_eq!(b.x, X);
+        assert_eq!(b.y, Y);
+        assert_eq!(b.z, Z);
+    }
+
+
+
+    #[test]
+    fn add() {
+        let a = Vector3::new(X, Y, Z);
+        let b = Vector3::new(-X, -Y, -Z);
+        let c = a.add(&b);
+        assert_eq!(c.x, 0.0);
+        assert_eq!(c.y, 0.0);
+        assert_eq!(c.z, 0.0);
+
+        let d = b.add(&b);
+        assert_eq!(d.x, -2.0 * X);
+        assert_eq!(d.y, -2.0 * Y);
+        assert_eq!(d.z, -2.0 * Z);
+    }
+    #[test]
+    fn subtract() {
+        let a = Vector3::new(X, Y, Z);
+        let b = Vector3::new(-X, -Y, -Z);
+        let c = a.subtract(&b);
+        assert_eq!(c.x, 2.0 * X);
+        assert_eq!(c.y, 2.0 * Y);
+        assert_eq!(c.z, 2.0 * Z);
+
+        let d = a.subtract(&a);
+        assert_eq!(d.x, 0.0);
+        assert_eq!(d.y, 0.0);
+        assert_eq!(d.z, 0.0);
+    }
+
+    #[test]
+    fn multiply_divide() {
+        let a1 = Vector3::new(X, Y, Z);
+
+        let a2 = a1.multiply_scalar(-2.0);
+        assert_eq!(a2.x, X * -2.0);
+        assert_eq!(a2.y, Y * -2.0);
+        assert_eq!(a2.z, Z * -2.0);
+
+        let a3 = a2.divide_scalar(-2.0);
+        assert_eq!(a3.x, X);
+        assert_eq!(a3.y, Y);
+        assert_eq!(a3.z, Z);
+
+
+        let b1 = Vector3::new(-X, -Y, -Z);
+
+        let b2 = b1.multiply_scalar(-2.0);
+        assert_eq!(b2.x, 2.0 * X);
+        assert_eq!(b2.y, 2.0 * Y);
+        assert_eq!(b2.z, 2.0 * Z);
+
+        let b3 = b2.divide_scalar(-2.0);
+        assert_eq!(b3.x, -X);
+        assert_eq!(b3.y, -Y);
+        assert_eq!(b3.z, -Z);
+    }
+
+    #[test]
+    fn min_max_clamp() {
+        let a = Vector3::new(X, Y, Z);
+        let b = Vector3::new(-X, -Y, -Z);
+        let c = a.min(&b);
+
+        assert_eq!(c.x, -X);
+        assert_eq!(c.y, -Y);
+        assert_eq!(c.z, -Z);
+
+        let d = a.max(&b);
+        assert_eq!(d.x, X);
+        assert_eq!(d.y, Y);
+        assert_eq!(d.z, Z);
+
+        let e = Vector3::new(-2.0 * X, 2.0 * Y, -2.0 * Z).clamp(&b, &a);
+        assert_eq!(e.x, -X);
+        assert_eq!(e.y, Y);
+        assert_eq!(e.z, -Z);
+    }
+
+    #[test]
+    fn negate() {
+        let a = Vector3::new(X, Y, Z);
+        let b = a.negate();
+        assert_eq!(b.x, -X);
+        assert_eq!(b.y, -Y);
+        assert_eq!(b.z, -Z);
+    }
+
+    #[test]
+    fn dot() {
+        let a = Vector3::new(X, Y, Z);
+        let b = Vector3::new(-X, -Y, -Z);
+        let c = a.dot(&b);
+        assert_eq!(c, -X * X - Y * Y - Z * Z);
+
+        let d = a.dot(&Vector3::ZERO);
+        assert_eq!(d, 0.0);
+    }
+
+    #[test]
+    fn length_length_squared() {
+        let a = Vector3::new(X, 0.0, 0.0);
+        let b = Vector3::new(0.0, -Y, 0.0);
+        let c = Vector3::new(0.0, 0.0, Z);
+        let d = Vector3::ZERO;
+
+        assert_eq!(a.length(), X);
+        assert_eq!(a.length_squared(), X * X);
+        assert_eq!(b.length(), Y);
+        assert_eq!(b.length_squared(), Y * Y);
+        assert_eq!(c.length(), Z);
+        assert_eq!(c.length_squared(), Z * Z);
+        assert_eq!(d.length(), 0.0);
+        assert_eq!(d.length_squared(), 0.0);
+
+        let e = Vector3::new(X, Y, Z);
+        assert_eq!(e.length(), (X * X + Y * Y + Z * Z).sqrt());
+        assert_eq!(e.length_squared(), (X * X + Y * Y + Z * Z));
+    }
+
+    #[test]
+    fn normalize() {
+        let a = Vector3::new(X, 0.0, 0.0).normalize();
+        assert_eq!(a.length(), 1.0);
+        assert_eq!(a.x, 1.0);
+
+        let b = Vector3::new(0.0, -Y, 0.0).normalize();
+        assert_eq!(b.length(), 1.0);
+        assert_eq!(b.y, -1.0);
+
+        let c = Vector3::new(0.0, 0.0, Z).normalize();
+        assert_eq!(c.length(), 1.0);
+        assert_eq!(c.z, 1.0);
+    }
+
+    #[test]
+    fn distance_to_distance_to_squared() {
+        let a = Vector3::new(X, 0.0, 0.0);
+        let b = Vector3::new(0.0, -Y, 0.0);
+        let c = Vector3::new(0.0, 0.0, Z);
+        let d = Vector3::ZERO;
+
+        assert_eq!(a.distance_to(&d), X);
+        assert_eq!(a.distance_to_squared(&d), X * X);
+        assert_eq!(b.distance_to(&d), Y);
+        assert_eq!(b.distance_to_squared(&d), Y * Y);
+        assert_eq!(c.distance_to(&d), Z);
+        assert_eq!(c.distance_to_squared(&d), Z * Z);
+    }
+
+    #[test]
+    fn project_on_vector() {
+        let a = Vector3::new(1.0, 0.0, 0.0);
+        let normal = Vector3::new(10.0, 0.0, 0.0);
+        assert_eq!(a.project_on_vector(&normal), Vector3::new(1.0, 0.0, 0.0));
+
+        let b = Vector3::new(0.0, 1.0, 0.0);
+        assert_eq!(b.project_on_vector(&normal), Vector3::ZERO);
+
+        let c = Vector3::new(0.0, 0.0, -1.0);
+        assert_eq!(c.project_on_vector(&normal), Vector3::ZERO);
+
+        let d = Vector3::new(-1.0, 0.0, 0.0);
+        assert_eq!(d.project_on_vector(&normal), Vector3::new(-1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn project_on_plane() {
+        let a = Vector3::new(1.0, 0.0, 0.0);
+        let normal = Vector3::new(1.0, 0.0, 0.0);
+
+        assert_eq!(a.project_on_plane(&normal), Vector3::ZERO);
+
+        let b = Vector3::new(0.0, 1.0, 0.0);
+        assert_eq!(b.project_on_plane(&normal), Vector3::new(0.0, 1.0, 0.0));
+
+        let c = Vector3::new(0.0, 0.0, -1.0);
+        assert_eq!(c.project_on_plane(&normal), Vector3::new(0.0, 0.0, -1.0));
+
+        let d = Vector3::new(-1.0, 0.0, 0.0);
+        assert_eq!(d.project_on_plane(&normal), Vector3::ZERO);
+    }
+
+    #[test]
+    fn reflect() {
+        let normal = Vector3::new(0.0, 1.0, 0.0);
+
+        let a = Vector3::new(0.0, -1.0, 0.0);
+        assert_eq!(a.reflect(&normal), Vector3::new(0.0, 1.0, 0.0));
+
+        let b = Vector3::new(1.0, -1.0, 0.0);
+        assert_eq!(b.reflect(&normal), Vector3::new(1.0, 1.0, 0.0));
+
+        let c = Vector3::new(1.0, -1.0, 0.0);
+        let normal2 = Vector3::new(0.0, -1.0, 0.0);
+        assert_eq!(c.reflect(&normal2), Vector3::new(1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn angle_to() {
+        let a = Vector3::new(0.0, -0.18851655680720186, 0.9820700116639124);
+        let b = Vector3::new(0.0, 0.18851655680720186, -0.9820700116639124);
+
+        assert_eq!(a.angle_to(&a), 0.0);
+        assert_eq!(a.angle_to(&b), PI);
+
+        let x = Vector3::new(1.0, 0.0, 0.0);
+        let y = Vector3::new(0.0, 1.0, 0.0);
+        let z = Vector3::new(0.0, 0.0, 1.0);
+
+        assert_eq!(x.angle_to(&y), PI / 2.0);
+        assert_eq!(x.angle_to(&z), PI / 2.0);
+        assert_eq!(z.angle_to(&x), PI / 2.0);
+
+        assert!((x.angle_to(&Vector3::new(1.0, 1.0, 0.0)) - (PI / 4.0)).abs() < 0.0000001);
+    }
+
+    #[test]
+    fn lerp_clone() {
+        let a = Vector3::new(X, 0.0, Z);
+        let b = Vector3::new(0.0, -Y, 0.0);
+
+        assert_eq!(a.lerp(&a, 0.0), a.lerp(&a, 0.5));
+        assert_eq!(a.lerp(&a, 0.0), a.lerp(&a, 1.0));
+
+        assert_eq!(a.lerp(&b, 0.0), a);
+
+        assert_eq!(a.lerp(&b, 0.5).x, X * 0.5);
+        assert_eq!(a.lerp(&b, 0.5).y, -Y * 0.5);
+        assert_eq!(a.lerp(&b, 0.5).z, Z * 0.5);
+
+        assert_eq!(a.lerp(&b, 1.0), b);
     }
 }
