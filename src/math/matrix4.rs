@@ -246,16 +246,16 @@ impl Matrix4 {
     }
 
     pub fn look_at(&self, eye: &Vector3, target: &Vector3, up: &Vector3) -> Matrix4 {
-        let mut z = eye.subtract(target).normalize();
+        let mut z = eye.subtract(target).normalized();
         if z.length_squared() == 0.0 {
             z.z = 1.0;
         }
 
-        let mut x = up.cross(&z).normalize();
+        let mut x = up.cross(&z).normalized();
 
         if x.length_squared() == 0.0 {
             z = Vector3 { z: z.z + 0.001, ..z };
-            x = up.cross(&z).normalize();
+            x = up.cross(&z).normalized();
         }
 
         let y = z.cross(&x);

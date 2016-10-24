@@ -193,7 +193,7 @@ impl Vector3 {
             z: affine.elements[2] * self.x + affine.elements[6] * self.y +
                affine.elements[10] * self.z,
         };
-        transformed.normalize()
+        transformed.normalized()
     }
 
     pub fn divide(&self, v: &Vector3) -> Vector3 {
@@ -306,7 +306,7 @@ impl Vector3 {
         self.x.abs() + self.y.abs() + self.z.abs()
     }
 
-    pub fn normalize(&self) -> Vector3 {
+    pub fn normalized(&self) -> Vector3 {
         self.divide_scalar(self.length())
     }
 
@@ -555,16 +555,16 @@ mod tests {
     }
 
     #[test]
-    fn normalize() {
-        let a = Vector3::new(X, 0.0, 0.0).normalize();
+    fn normalized() {
+        let a = Vector3::new(X, 0.0, 0.0).normalized();
         assert_eq!(a.length(), 1.0);
         assert_eq!(a.x, 1.0);
 
-        let b = Vector3::new(0.0, -Y, 0.0).normalize();
+        let b = Vector3::new(0.0, -Y, 0.0).normalized();
         assert_eq!(b.length(), 1.0);
         assert_eq!(b.y, -1.0);
 
-        let c = Vector3::new(0.0, 0.0, Z).normalize();
+        let c = Vector3::new(0.0, 0.0, Z).normalized();
         assert_eq!(c.length(), 1.0);
         assert_eq!(c.z, 1.0);
     }

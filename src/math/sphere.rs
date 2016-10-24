@@ -56,7 +56,7 @@ impl Sphere {
         let delta_length_squared = self.center.distance_to_squared(point);
 
         if delta_length_squared > self.radius.powi(2) {
-            let n = point.subtract(&self.center).normalize();
+            let n = point.subtract(&self.center).normalized();
             n.multiply_scalar(self.radius).add(&self.center)
         } else {
             *point

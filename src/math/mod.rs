@@ -1,5 +1,6 @@
 mod box3;
 mod euler;
+mod line3;
 mod matrix3;
 mod matrix4;
 mod plane;
@@ -12,6 +13,7 @@ mod vector3;
 pub use self::box3::Box3;
 pub use self::euler::Euler;
 pub use self::euler::EulerOrder;
+pub use self::line3::Line3;
 pub use self::matrix3::Matrix3;
 pub use self::matrix4::Matrix4;
 pub use self::plane::Plane;
