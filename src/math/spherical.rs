@@ -1,3 +1,7 @@
+use std::f32::consts::PI;
+use std::f32::EPSILON;
+use math::Vector3;
+
 // Ref: https://en.wikipedia.org/wiki/Spherical_coordinate_system
 // The poles (phi) are at the positive and negative y axis.
 // The equator starts at positive z.
@@ -21,6 +25,23 @@ impl Spherical {
             radius: radius,
             phi: phi,
             theta: theta,
+        }
+    }
+
+    // restrict phi to be betwee EPS and PI-EPS
+    pub fn make_safe(&self) -> Spherical {
+        Spherical { phi: self.phi.min(PI - EPSILON).max(EPSILON), ..*self }
+    }
+
+    pub fn from_vector3(vec3: &Vector3) -> Spherical {
+        let radius = vec3.length();
+
+        if radius == 0.0 {
+            Spherical::new(radius, 0.0, 0.0)
+        } else {
+            let phi = (vec3.y / radius).max(-1.0).min(1.0).acos(); // polar angle
+            let theta = vec3.x.atan2(vec3.z);// equator angle around y-up axis
+            Spherical::new(radius, phi, theta)
         }
     }
 }
