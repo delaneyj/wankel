@@ -1,5 +1,6 @@
 mod box2;
 mod box3;
+mod color;
 mod euler;
 mod line3;
 mod matrix3;
@@ -10,9 +11,11 @@ mod sphere;
 mod spherical;
 mod vector2;
 mod vector3;
+mod utils;
 
 pub use self::box2::Box2;
 pub use self::box3::Box3;
+pub use self::color::*;
 pub use self::euler::Euler;
 pub use self::euler::EulerOrder;
 pub use self::line3::Line3;
@@ -24,3 +27,5 @@ pub use self::sphere::Sphere;
 pub use self::spherical::Spherical;
 pub use self::vector2::Vector2;
 pub use self::vector3::Vector3;
+
+pub use self::utils::*;
