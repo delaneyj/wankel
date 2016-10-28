@@ -1,14 +1,25 @@
 use std::f32::consts::PI;
+use std::f32::{INFINITY, NEG_INFINITY};
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32,
 }
 
 impl Vector2 {
-    const ZERO: Vector2 = Vector2 { x: 0.0, y: 0.0 };
-    const ONE: Vector2 = Vector2 { x: 1.0, y: 1.0 };
+    pub const ZERO: Vector2 = Vector2 { x: 0.0, y: 0.0 };
+    pub const ONE: Vector2 = Vector2 { x: 1.0, y: 1.0 };
+
+    pub const INFINITY: Vector2 = Vector2 {
+        x: INFINITY,
+        y: INFINITY,
+    };
+
+    pub const NEG_INFINITY: Vector2 = Vector2 {
+        x: NEG_INFINITY,
+        y: NEG_INFINITY,
+    };
 
     pub fn new(x: f32, y: f32) -> Vector2 {
         Vector2 { x: x, y: y }
@@ -41,6 +52,13 @@ impl Vector2 {
         Vector2 {
             x: self.x + v.x,
             y: self.y + v.y,
+        }
+    }
+
+    pub fn add_scalar(&self, s: f32) -> Vector2 {
+        Vector2 {
+            x: self.x + s,
+            y: self.y + s,
         }
     }
 

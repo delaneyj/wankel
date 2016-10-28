@@ -1,3 +1,4 @@
+mod box2;
 mod box3;
 mod euler;
 mod line3;
@@ -10,6 +11,7 @@ mod spherical;
 mod vector2;
 mod vector3;
 
+pub use self::box2::Box2;
 pub use self::box3::Box3;
 pub use self::euler::Euler;
 pub use self::euler::EulerOrder;

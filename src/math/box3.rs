@@ -30,7 +30,7 @@ impl Box3 {
         }
     }
 
-    pub fn from_points(points: &[Vector3]) -> Box3 {
+    pub fn from_points(points: &[&Vector3]) -> Box3 {
         points.into_iter().fold(Box3::EMPTY, |acc, p| acc.expand_by_point(p))
     }
 
@@ -50,15 +50,15 @@ impl Box3 {
 
     // 			object.traverse( function ( node ) {
 
-    // 				var geometry = node.geometry;
+    // 				let geometry = node.geometry;
 
     // 				if ( geometry !== undefined ) {
 
     // 					if ( (geometry && geometry.isGeometry) ) {
 
-    // 						var vertices = geometry.vertices;
+    // 						let vertices = geometry.vertices;
 
-    // 						for ( var i = 0, il = vertices.length; i < il; i ++ ) {
+    // 						for ( let i = 0, il = vertices.length; i < il; i ++ ) {
 
     // 							v1.copy( vertices[ i ] );
     // 							v1.applyMatrix4( node.matrixWorld );
@@ -69,11 +69,11 @@ impl Box3 {
 
     // 					} else if ( (geometry && geometry.isBufferGeometry) ) {
 
-    // 						var attribute = geometry.attributes.position;
+    // 						let attribute = geometry.attributes.position;
 
     // 						if ( attribute !== undefined ) {
 
-    // 							var array, offset, stride;
+    // 							let array, offset, stride;
 
     // 							if ( (attribute && attribute.isInterleavedBufferAttribute) ) {
 
@@ -89,7 +89,7 @@ impl Box3 {
 
     // 							}
 
-    // 							for ( var i = offset, il = array.length; i < il; i += stride ) {
+    // 							for ( let i = offset, il = array.length; i < il; i += stride ) {
 
     // 								v1.fromArray( array, i );
     // 								v1.applyMatrix4( node.matrixWorld );
@@ -211,16 +211,16 @@ impl Box3 {
         Sphere::new(&self.center(), self.size().length() * 0.5)
     }
 
-    pub fn intersect_box(&self, box3: &Box3) -> Box3 {
+    pub fn intersect_box(&self, box3: &Box3) -> Option<Box3> {
         let min = self.min.max(&box3.min);
         let max = self.max.min(&box3.max);
         let intersect = Box3::new(&min, &max);
 
         // ensure that if there is no overlap, the result is fully empty, not slightly empty with non-inf/+inf values that will cause subsequence intersects to erroneously return valid values.
         if intersect.is_empty() {
-            Box3::EMPTY
+            None
         } else {
-            *self
+            Some(*self)
         }
     }
 
@@ -233,15 +233,15 @@ impl Box3 {
             Box3::EMPTY
         } else {
             // 	// NOTE: I am using a binary pattern to specify all 2^3 combinations below
-            let points = vec![Vector3::new(self.min.x, self.min.y, self.min.z).apply_matrix4(m), /* 000 */
-                              Vector3::new(self.min.x, self.min.y, self.max.z).apply_matrix4(m), /* 001 */
-                              Vector3::new(self.min.x, self.max.y, self.min.z).apply_matrix4(m), /* 010 */
-                              Vector3::new(self.min.x, self.max.y, self.max.z).apply_matrix4(m), /* 011 */
-                              Vector3::new(self.max.x, self.min.y, self.min.z).apply_matrix4(m), /* 100 */
-                              Vector3::new(self.max.x, self.min.y, self.max.z).apply_matrix4(m), /* 101 */
-                              Vector3::new(self.max.x, self.max.y, self.min.z).apply_matrix4(m), /* 110 */
-                              Vector3::new(self.max.x, self.max.y, self.max.z).apply_matrix4(m) /* 111 */];
-
+            let v000 = Vector3::new(self.min.x, self.min.y, self.min.z).apply_matrix4(m);
+            let v001 = Vector3::new(self.min.x, self.min.y, self.max.z).apply_matrix4(m);
+            let v010 = Vector3::new(self.min.x, self.max.y, self.min.z).apply_matrix4(m);
+            let v011 = Vector3::new(self.min.x, self.max.y, self.max.z).apply_matrix4(m);
+            let v100 = Vector3::new(self.max.x, self.min.y, self.min.z).apply_matrix4(m);
+            let v101 = Vector3::new(self.max.x, self.min.y, self.max.z).apply_matrix4(m);
+            let v110 = Vector3::new(self.max.x, self.max.y, self.min.z).apply_matrix4(m);
+            let v111 = Vector3::new(self.max.x, self.max.y, self.max.z).apply_matrix4(m);
+            let points = vec![&v000, &v001, &v010, &v011, &v100, &v101, &v110, &v111];
             Box3::from_points(&points)
         }
     }
@@ -253,8 +253,13 @@ impl Box3 {
 
 #[cfg(test)]
 mod tests {
-    use super::Box3;
-    use math::Vector3;
+    use math::*;
+
+    const V3_TWO: Vector3 = Vector3 {
+        x: 2.0,
+        y: 2.0,
+        z: 2.0,
+    };
 
     #[test]
     fn constructor() {
@@ -270,297 +275,276 @@ mod tests {
         assert_eq!(c.min, Vector3::ZERO);
         assert_eq!(c.max, Vector3::ONE);
     }
-    // test( "copy", function() {
-    // var a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var b = new THREE.Box3().copy( a );
-    // assert_eq!( b.min.equals( zero3 ));
-    // assert_eq!( b.max.equals( one3 ));
-    //
-    // ensure that it is a true copy
-    // a.min = zero3;
-    // a.max = one3;
-    // assert_eq!( b.min.equals( zero3 ));
-    // assert_eq!( b.max.equals( one3 ));
-    // });
-    //
-    // test( "set", function() {
-    // var a = new THREE.Box3();
-    //
-    // a.set( zero3, one3 );
-    // assert_eq!( a.min.equals( zero3 ));
-    // assert_eq!( a.max.equals( one3 ));
-    // });
-    //
-    // test( "setFromPoints", function() {
-    // var a = new THREE.Box3();
-    //
-    // a.setFromPoints( [ zero3, one3, two3 ] );
-    // assert_eq!( a.min.equals( zero3 ));
-    // assert_eq!( a.max.equals( two3 ));
-    //
-    // a.setFromPoints( [ one3 ] );
-    // assert_eq!( a.min.equals( one3 ));
-    // assert_eq!( a.max.equals( one3 ));
-    //
-    // a.setFromPoints( [] );
-    // assert_eq!( a.isEmpty());
-    // });
-    //
-    // test( "empty/makeEmpty", function() {
-    // var a = new THREE.Box3();
-    //
-    // assert_eq!( a.isEmpty());
-    //
-    // var a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // assert_eq!( ! a.isEmpty());
-    //
-    // a.makeEmpty();
-    // assert_eq!( a.isEmpty());
-    // });
-    //
-    // test( "center", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // assert_eq!( a.center().equals( zero3 ));
-    //
-    // a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var midpoint = one3.clone().multiplyScalar( 0.5 );
-    // assert_eq!( a.center().equals( midpoint ));
-    // });
-    //
-    // test( "size", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // assert_eq!( a.size().equals( zero3 ));
-    //
-    // a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // assert_eq!( a.size().equals( one3 ));
-    // });
-    //
-    // test( "expandByPoint", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // a.expandByPoint( zero3 );
-    // assert_eq!( a.size().equals( zero3 ));
-    //
-    // a.expandByPoint( one3 );
-    // assert_eq!( a.size().equals( one3 ));
-    //
-    // a.expandByPoint( one3.clone().negate() );
-    // assert_eq!( a.size().equals( one3.clone().multiplyScalar( 2 ) ));
-    // assert_eq!( a.center().equals( zero3 ));
-    // });
-    //
-    // test( "expandByVector", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // a.expandByVector( zero3 );
-    // assert_eq!( a.size().equals( zero3 ));
-    //
-    // a.expandByVector( one3 );
-    // assert_eq!( a.size().equals( one3.clone().multiplyScalar( 2 ) ));
-    // assert_eq!( a.center().equals( zero3 ));
-    // });
-    //
-    // test( "expandByScalar", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // a.expandByScalar( 0 );
-    // assert_eq!( a.size().equals( zero3 ));
-    //
-    // a.expandByScalar( 1 );
-    // assert_eq!( a.size().equals( one3.clone().multiplyScalar( 2 ) ));
-    // assert_eq!( a.center().equals( zero3 ));
-    // });
-    //
-    // test( "containsPoint", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    //
-    // assert_eq!( a.containsPoint( zero3 ));
-    // assert_eq!( ! a.containsPoint( one3 ));
-    //
-    // a.expandByScalar( 1 );
-    // assert_eq!( a.containsPoint( zero3 ));
-    // assert_eq!( a.containsPoint( one3 ));
-    // assert_eq!( a.containsPoint( one3.clone().negate() ));
-    // });
-    //
-    // test( "containsBox", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.containsBox( a ));
-    // assert_eq!( ! a.containsBox( b ));
-    // assert_eq!( ! a.containsBox( c ));
-    //
-    // assert_eq!( b.containsBox( a ));
-    // assert_eq!( c.containsBox( a ));
-    // assert_eq!( ! b.containsBox( c ));
-    // });
-    //
-    // test( "getParameter", function() {
-    // var a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var b = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.getParameter( new THREE.Vector3( 0, 0, 0 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    // assert_eq!( a.getParameter( new THREE.Vector3( 1, 1, 1 ) ).equals( new THREE.Vector3( 1, 1, 1 ) ));
-    //
-    // assert_eq!( b.getParameter( new THREE.Vector3( -1, -1, -1 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    // assert_eq!( b.getParameter( new THREE.Vector3( 0, 0, 0 ) ).equals( new THREE.Vector3( 0.5, 0.5, 0.5 ) ));
-    // assert_eq!( b.getParameter( new THREE.Vector3( 1, 1, 1 ) ).equals( new THREE.Vector3( 1, 1, 1 ) ));
-    // });
-    //
-    // test( "clampPoint", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.clampPoint( new THREE.Vector3( 0, 0, 0 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    // assert_eq!( a.clampPoint( new THREE.Vector3( 1, 1, 1 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    // assert_eq!( a.clampPoint( new THREE.Vector3( -1, -1, -1 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    //
-    // assert_eq!( b.clampPoint( new THREE.Vector3( 2, 2, 2 ) ).equals( new THREE.Vector3( 1, 1, 1 ) ));
-    // assert_eq!( b.clampPoint( new THREE.Vector3( 1, 1, 1 ) ).equals( new THREE.Vector3( 1, 1, 1 ) ));
-    // assert_eq!( b.clampPoint( new THREE.Vector3( 0, 0, 0 ) ).equals( new THREE.Vector3( 0, 0, 0 ) ));
-    // assert_eq!( b.clampPoint( new THREE.Vector3( -1, -1, -1 ) ).equals( new THREE.Vector3( -1, -1, -1 ) ));
-    // assert_eq!( b.clampPoint( new THREE.Vector3( -2, -2, -2 ) ).equals( new THREE.Vector3( -1, -1, -1 ) ));
-    // });
-    //
-    // test( "distanceToPoint", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( 0, 0, 0 ) ) == 0);
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( 1, 1, 1 ) ) == Math.sqrt( 3 ));
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( -1, -1, -1 ) ) == Math.sqrt( 3 ));
-    //
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 2, 2, 2 ) ) == Math.sqrt( 3 ));
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 1, 1, 1 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 0, 0, 0 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( -1, -1, -1 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( -2, -2, -2 ) ) == Math.sqrt( 3 ));
-    // });
-    //
-    // test( "distanceToPoint", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( 0, 0, 0 ) ) == 0);
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( 1, 1, 1 ) ) == Math.sqrt( 3 ));
-    // assert_eq!( a.distanceToPoint( new THREE.Vector3( -1, -1, -1 ) ) == Math.sqrt( 3 ));
-    //
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 2, 2, 2 ) ) == Math.sqrt( 3 ));
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 1, 1, 1 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( 0, 0, 0 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( -1, -1, -1 ) ) == 0);
-    // assert_eq!( b.distanceToPoint( new THREE.Vector3( -2, -2, -2 ) ) == Math.sqrt( 3 ));
-    // });
-    //
-    // test( "intersectsBox", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.intersectsBox( a ));
-    // assert_eq!( a.intersectsBox( b ));
-    // assert_eq!( a.intersectsBox( c ));
-    //
-    // assert_eq!( b.intersectsBox( a ));
-    // assert_eq!( c.intersectsBox( a ));
-    // assert_eq!( b.intersectsBox( c ));
-    //
-    // b.translate( new THREE.Vector3( 2, 2, 2 ) );
-    // assert_eq!( ! a.intersectsBox( b ));
-    // assert_eq!( ! b.intersectsBox( a ));
-    // assert_eq!( ! b.intersectsBox( c ));
-    // });
-    //
-    // test( "intersectsSphere", function() {
-    // var a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var b = new THREE.Sphere( zero3.clone(), 1 );
-    //
-    // assert_eq!( a.intersectsSphere( b ) );
-    //
-    // b.translate( new THREE.Vector3( 2, 2, 2 ) );
-    // assert_eq!( ! a.intersectsSphere( b ) );
-    // });
-    //
-    // test( "intersectsPlane", function() {
-    // var a = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var b = new THREE.Plane( new THREE.Vector3( 0, 1, 0 ), 1 );
-    // var c = new THREE.Plane( new THREE.Vector3( 0, 1, 0 ), 1.25 );
-    // var d = new THREE.Plane( new THREE.Vector3( 0, -1, 0 ), 1.25 );
-    //
-    // assert_eq!( a.intersectsPlane( b ) );
-    // assert_eq!( ! a.intersectsPlane( c ) );
-    // assert_eq!( ! a.intersectsPlane( d ) );
-    // });
-    //
-    // test( "getBoundingSphere", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.getBoundingSphere().equals( new THREE.Sphere( zero3, 0 ) ));
-    // assert_eq!( b.getBoundingSphere().equals( new THREE.Sphere( one3.clone().multiplyScalar( 0.5 ), Math.sqrt( 3 ) * 0.5 ) ));
-    // assert_eq!( c.getBoundingSphere().equals( new THREE.Sphere( zero3, Math.sqrt( 12 ) * 0.5 ) ));
-    // });
-    //
-    // test( "intersect", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.clone().intersect( a ).equals( a ));
-    // assert_eq!( a.clone().intersect( b ).equals( a ));
-    // assert_eq!( b.clone().intersect( b ).equals( b ));
-    // assert_eq!( a.clone().intersect( c ).equals( a ));
-    // assert_eq!( b.clone().intersect( c ).equals( b ));
-    // assert_eq!( c.clone().intersect( c ).equals( c ));
-    // });
-    //
-    // test( "union", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    //
-    // assert_eq!( a.clone().union( a ).equals( a ));
-    // assert_eq!( a.clone().union( b ).equals( b ));
-    // assert_eq!( a.clone().union( c ).equals( c ));
-    // assert_eq!( b.clone().union( c ).equals( c ));
-    // });
-    //
-    // var compareBox = function ( a, b, threshold ) {
-    // threshold = threshold || 0.0001;
-    // return ( a.min.distanceTo( b.min ) < threshold &&
-    // a.max.distanceTo( b.max ) < threshold );
-    // };
-    //
-    // test( "applyMatrix4", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    // var d = new THREE.Box3( one3.clone().negate(), zero3.clone() );
-    //
-    // var m = new THREE.Matrix4().makeTranslation( 1, -2, 1 );
-    // var t1 = new THREE.Vector3( 1, -2, 1 );
-    //
-    // assert_eq!( compareBox( a.clone().applyMatrix4( m ), a.clone().translate( t1 ) ));
-    // assert_eq!( compareBox( b.clone().applyMatrix4( m ), b.clone().translate( t1 ) ));
-    // assert_eq!( compareBox( c.clone().applyMatrix4( m ), c.clone().translate( t1 ) ));
-    // assert_eq!( compareBox( d.clone().applyMatrix4( m ), d.clone().translate( t1 ) ));
-    // });
-    //
-    // test( "translate", function() {
-    // var a = new THREE.Box3( zero3.clone(), zero3.clone() );
-    // var b = new THREE.Box3( zero3.clone(), one3.clone() );
-    // var c = new THREE.Box3( one3.clone().negate(), one3.clone() );
-    // var d = new THREE.Box3( one3.clone().negate(), zero3.clone() );
-    //
-    // assert_eq!( a.clone().translate( one3 ).equals( new THREE.Box3( one3, one3 ) ));
-    // assert_eq!( a.clone().translate( one3 ).translate( one3.clone().negate() ).equals( a ));
-    // assert_eq!( d.clone().translate( one3 ).equals( b ));
-    // assert_eq!( b.clone().translate( one3.clone().negate() ).equals( d ));
-    // });
-    //
+
+    #[test]
+    fn from_points() {
+        let a = Box3::from_points(&vec![&Vector3::ZERO, &Vector3::ONE, &V3_TWO]);
+        assert_eq!(a.min, Vector3::ZERO);
+        assert_eq!(a.max, V3_TWO);
+
+        let b = Box3::from_points(&vec![&Vector3::ONE].as_slice());
+        assert_eq!(b.min, Vector3::ONE);
+        assert_eq!(b.max, Vector3::ONE);
+
+        let c = Box3::from_points(&[]);
+        assert_eq!(c.is_empty(), true);
+    }
+
+    #[test]
+    fn empty() {
+        let a = Box3::EMPTY;
+        assert_eq!(a.is_empty(), true);
+
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        assert_eq!(b.is_empty(), false);
+    }
+
+    #[test]
+    fn center() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        assert_eq!(a.center(), Vector3::ZERO);
+
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let midpoint = Vector3::ONE.multiply_scalar(0.5);
+        assert_eq!(b.center(), midpoint);
+    }
+
+    #[test]
+    fn size() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        assert_eq!(a.size(), Vector3::ZERO);
+
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        assert_eq!(b.size(), Vector3::ONE);
+    }
+
+    #[test]
+    fn expand_by_point() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+
+        let b = a.expand_by_point(&Vector3::ZERO);
+        assert_eq!(b.size(), Vector3::ZERO);
+
+        let c = b.expand_by_point(&Vector3::ONE);
+        assert_eq!(c.size(), Vector3::ONE);
+
+        let d = c.expand_by_point(&Vector3::ONE.negate());
+        assert_eq!(d.size(), Vector3::ONE.multiply_scalar(2.0));
+        assert_eq!(a.center(), Vector3::ZERO);
+    }
+
+    #[test]
+    fn expand_by_vector() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = a.expand_by_vector(&Vector3::ZERO);
+        assert_eq!(b.size(), Vector3::ZERO);
+
+        let c = b.expand_by_vector(&Vector3::ONE);
+        assert_eq!(c.size(), Vector3::ONE.multiply_scalar(2.0));
+        assert_eq!(c.center(), Vector3::ZERO);
+    }
+
+    #[test]
+    fn expand_by_scalar() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = a.expand_by_scalar(0.0);
+        assert_eq!(a.size(), Vector3::ZERO);
+
+        let c = b.expand_by_scalar(1.0);
+        assert_eq!(c.size(), Vector3::ONE.multiply_scalar(2.0));
+        assert_eq!(c.center(), Vector3::ZERO);
+    }
+
+    #[test]
+    fn contains_point() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+
+        assert_eq!(a.contains_point(&Vector3::ZERO), true);
+        assert_eq!(a.contains_point(&Vector3::ONE), false);
+
+        let b = a.expand_by_scalar(1.0);
+        assert_eq!(b.contains_point(&Vector3::ZERO), true);
+        assert_eq!(b.contains_point(&Vector3::ONE), true);
+        assert_eq!(b.contains_point(&Vector3::ONE.negate()), true);
+    }
+
+    #[test]
+    fn contains_box() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+
+        assert_eq!(a.contains_box(&a), true);
+        assert_eq!(a.contains_box(&b), false);
+        assert_eq!(a.contains_box(&c), false);
+
+        assert_eq!(b.contains_box(&a), true);
+        assert_eq!(c.contains_box(&a), true);
+        assert_eq!(b.contains_box(&c), false);
+    }
+
+    #[test]
+    fn get_parameter() {
+        // let a = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        // let b = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+        // assert_eq!( a.getParameter( Vector3::new( 0, 0, 0 ) ),Vector3::new( 0, 0, 0 ) ));
+        // assert_eq!( a.getParameter( Vector3::new( 1, 1, 1 ) ),Vector3::new( 1, 1, 1 ) ));
+        //
+        // assert_eq!( b.getParameter( Vector3::new( -1, -1, -1 ) ),Vector3::new( 0, 0, 0 ) ));
+        // assert_eq!( b.getParameter( Vector3::new( 0, 0, 0 ) ),Vector3::new( 0.5, 0.5, 0.5 ) ));
+        // assert_eq!( b.getParameter( Vector3::new( 1, 1, 1 ) ),Vector3::new( 1, 1, 1 ) ));
+        // });
+        //
+        // #[test] fn clampPoint() {
+        // let a = Box3::new( &Vector3::ZERO, &Vector3::ZERO );
+        // let b = Box3::new( &Vector3::ONE.negate(), &Vector3::ONE );
+        //
+        // assert_eq!( a.clampPoint( Vector3::new( 0, 0, 0 ) ),Vector3::new( 0, 0, 0 ) ));
+        // assert_eq!( a.clampPoint( Vector3::new( 1, 1, 1 ) ),Vector3::new( 0, 0, 0 ) ));
+        // assert_eq!( a.clampPoint( Vector3::new( -1, -1, -1 ) ),Vector3::new( 0, 0, 0 ) ));
+        //
+        // assert_eq!( b.clampPoint( Vector3::new( 2, 2, 2 ) ),Vector3::new( 1, 1, 1 ) ));
+        // assert_eq!( b.clampPoint( Vector3::new( 1, 1, 1 ) ),Vector3::new( 1, 1, 1 ) ));
+        // assert_eq!( b.clampPoint( Vector3::new( 0, 0, 0 ) ),Vector3::new( 0, 0, 0 ) ));
+        // assert_eq!( b.clampPoint( Vector3::new( -1, -1, -1 ) ),Vector3::new( -1, -1, -1 ) ));
+        // assert_eq!( b.clampPoint( Vector3::new( -2, -2, -2 ) ),Vector3::new( -1, -1, -1 ) ));
+    }
+
+    #[test]
+    fn distance_to_point() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+        let sqrt_three = (3.0_f32).sqrt();
+
+        assert_eq!(a.distance_to_point(&Vector3::new(0.0, 0.0, 0.0)), 0.0);
+        assert_eq!(a.distance_to_point(&Vector3::new(1.0, 1.0, 1.0)),
+                   sqrt_three);
+        assert_eq!(a.distance_to_point(&Vector3::new(-1.0, -1.0, -1.0)),
+                   sqrt_three);
+
+        assert_eq!(b.distance_to_point(&Vector3::new(2.0, 2.0, 2.0)),
+                   sqrt_three);
+        assert_eq!(b.distance_to_point(&Vector3::new(1.0, 1.0, 1.0)), 0.0);
+        assert_eq!(b.distance_to_point(&Vector3::new(0.0, 0.0, 0.0)), 0.0);
+        assert_eq!(b.distance_to_point(&Vector3::new(-1.0, -1.0, -1.0)), 0.0);
+        assert_eq!(b.distance_to_point(&Vector3::new(-2.0, -2.0, -2.0)),
+                   sqrt_three);
+    }
+
+    #[test]
+    fn intersects_box() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+
+        assert_eq!(a.intersect_box(&a).is_some(), true);
+        assert_eq!(a.intersect_box(&b).is_some(), true);
+        assert_eq!(a.intersect_box(&c).is_some(), true);
+
+        assert_eq!(b.intersect_box(&a).is_some(), true);
+        assert_eq!(c.intersect_box(&a).is_some(), true);
+        assert_eq!(b.intersect_box(&c).is_some(), true);
+
+        let d = b.translate(&Vector3::new(2.0, 2.0, 2.0));
+        assert_eq!(a.intersect_box(&d), None);
+        assert_eq!(d.intersect_box(&a), None);
+        assert_eq!(d.intersect_box(&c), None);
+    }
+
+    #[test]
+    fn intersects_sphere() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let b = Sphere::new(&Vector3::ZERO, 1.0);
+
+        assert_eq!(a.intersects_sphere(&b), true);
+
+        let c = b.translate(&Vector3::new(2.0, 2.0, 2.0));
+        assert_eq!(a.intersects_sphere(&c), false);
+    }
+
+    #[test]
+    fn intersects_plane() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let b = Plane::new(&Vector3::new(0.0, 1.0, 0.0), 1.0);
+        let c = Plane::new(&Vector3::new(0.0, 1.0, 0.0), 1.25);
+        let d = Plane::new(&Vector3::new(0.0, -1.0, 0.0), 1.25);
+
+        assert_eq!(a.intersects_plane(&b), true);
+        assert_eq!(a.intersects_plane(&c), false);
+        assert_eq!(a.intersects_plane(&d), false);
+    }
+
+    #[test]
+    fn bounding_sphere() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+
+        assert_eq!(a.bounding_sphere(), Sphere::new(&Vector3::ZERO, 0.0));
+        assert_eq!(b.bounding_sphere(),
+                   Sphere::new(&Vector3::ONE.multiply_scalar(0.5), 3.0_f32.sqrt() * 0.5));
+        assert_eq!(c.bounding_sphere(),
+                   Sphere::new(&Vector3::ZERO, 12.0_f32.sqrt() * 0.5));
+    }
+
+    #[test]
+    fn intersect() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+
+        assert_eq!(a.intersect_box(&a), Some(a));
+        assert_eq!(a.intersect_box(&b), Some(a));
+        assert_eq!(b.intersect_box(&b), Some(b));
+        assert_eq!(a.intersect_box(&c), Some(a));
+        assert_eq!(b.intersect_box(&c), Some(b));
+        assert_eq!(c.intersect_box(&c), Some(c));
+    }
+
+    #[test]
+    fn union() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+
+        assert_eq!(a.union(&a), a);
+        assert_eq!(a.union(&b), b);
+        assert_eq!(a.union(&c), c);
+        assert_eq!(b.union(&c), c);
+    }
+
+    #[test]
+    fn apply_matrix4() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let c = Box3::new(&Vector3::ONE.negate(), &Vector3::ONE);
+        let d = Box3::new(&Vector3::ONE.negate(), &Vector3::ZERO);
+
+        let m = Matrix4::from_translation(&Vector3::new(1.0, -2.0, 1.0));
+        let t1 = Vector3::new(1.0, -2.0, 1.0);
+
+        let compare_boxes = |a: &Box3, b: &Box3| -> bool {
+            let threshold = 0.0001;
+            a.min.distance_to(&b.min) < threshold && a.max.distance_to(&b.max) < threshold
+        };
+
+        assert_eq!(compare_boxes(&a.apply_matrix4(&m), &a.translate(&t1)), true);
+        assert_eq!(compare_boxes(&b.apply_matrix4(&m), &b.translate(&t1)), true);
+        assert_eq!(compare_boxes(&c.apply_matrix4(&m), &c.translate(&t1)), true);
+        assert_eq!(compare_boxes(&d.apply_matrix4(&m), &d.translate(&t1)), true);
+    }
+
+    #[test]
+    fn translate() {
+        let a = Box3::new(&Vector3::ZERO, &Vector3::ZERO);
+        let b = Box3::new(&Vector3::ZERO, &Vector3::ONE);
+        let d = Box3::new(&Vector3::ONE.negate(), &Vector3::ZERO);
+
+        assert_eq!(a.translate(&Vector3::ONE),
+                   Box3::new(&Vector3::ONE, &Vector3::ONE));
+        assert_eq!(a.translate(&Vector3::ONE).translate(&Vector3::ONE.negate()),
+                   a);
+        assert_eq!(d.translate(&Vector3::ONE), b);
+        assert_eq!(b.translate(&Vector3::ONE.negate()), d);
+    }
 }
