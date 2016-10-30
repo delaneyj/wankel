@@ -1,5 +1,6 @@
 use std::f32::consts::PI;
 use std::f32::{INFINITY, NEG_INFINITY};
+use math::*;
 
 #[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Vector2 {
@@ -99,8 +100,8 @@ impl Vector2 {
 
     pub fn clamp(&self, min: &Vector2, max: &Vector2) -> Vector2 {
         Vector2 {
-            x: min.x.max(max.x.min(self.x)),
-            y: min.y.max(max.y.min(self.y)),
+            x: clamp(self.x, min.x, max.x),
+            y: clamp(self.y, min.y, max.y),
         }
     }
 

@@ -47,7 +47,7 @@ impl Line3 {
         let t = start_end_start_p / start_end2;
 
         if clamp_to_line {
-            t.max(0.0).min(1.0)
+            clamp(t,0.0,1.0)
         } else {
             t
         }

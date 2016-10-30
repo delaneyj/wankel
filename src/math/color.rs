@@ -18,9 +18,9 @@ pub struct HSL {
 impl Color {
     pub fn from_floats(r: f32, g: f32, b: f32) -> Color {
         Color {
-            r: r.max(0.0).min(1.0),
-            g: g.max(0.0).min(1.0),
-            b: b.max(0.0).min(1.0),
+            r: clamp(r, 0.0, 1.0),
+            g: clamp(g, 0.0, 1.0),
+            b: clamp(b, 0.0, 1.0),
         }
     }
 

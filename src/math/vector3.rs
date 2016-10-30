@@ -1,11 +1,7 @@
 use std::f32::{INFINITY, NEG_INFINITY};
 
-use math::Euler;
-use math::Matrix3;
-use math::Matrix4;
-use math::Quaternion;
-use math::Spherical;
-use cameras::Camera;
+use math::*;
+use cameras::*;
 
 #[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Vector3 {
@@ -226,9 +222,9 @@ impl Vector3 {
 
     pub fn clamp(&self, min: &Vector3, max: &Vector3) -> Vector3 {
         Vector3 {
-            x: min.x.max(max.x.min(self.x)),
-            y: min.y.max(max.y.min(self.y)),
-            z: min.z.max(max.z.min(self.z)),
+            x: clamp(self.x, min.x, max.x),
+            y: clamp(self.y, min.y, max.y),
+            z: clamp(self.z, min.z, max.z),
         }
     }
 
@@ -341,10 +337,7 @@ impl Vector3 {
 
     pub fn angle_to(&self, v: &Vector3) -> f32 {
         let theta = self.dot(v) / (self.length_squared() * v.length_squared()).sqrt();
-
-        // clamp, to handle numerical problems
-        let clamped = theta.max(-1.0).min(1.0);
-        clamped.acos()
+        clamp(theta, -1.0, 1.0).acos() // clamp, to handle numerical problems
     }
 
     pub fn distance_to(&self, v: &Vector3) -> f32 {
