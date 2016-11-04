@@ -1,6 +1,6 @@
 use math::*;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Plane {
     pub normal: Vector3,
     pub constant: f32,

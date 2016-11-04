@@ -5,5 +5,6 @@
 mod cameras;
 mod core;
 mod math;
+mod objects;
 
 mod consts;

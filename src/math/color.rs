@@ -45,19 +45,21 @@ impl Color {
             if mt > 1.0 {
                 mt -= 1.0;
             }
+
             if mt < 1.0 / 6.0 {
                 return p + (q - p) * 6.0 * mt;
             }
+            
             if mt < 1.0 / 2.0 {
                 return q;
             }
+            
             if mt < 2.0 / 3.0 {
                 return p + (q - p) * 6.0 * (2.0 / 3.0 - mt);
             }
+            
             p
         };
-
-
 
         // h,s,l ranges are in 0.0 - 1.0
         let h_clamped = euclidean_modulo(hsl.hue, 1.0);
