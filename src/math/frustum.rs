@@ -1,6 +1,6 @@
 use std::f32::consts::FRAC_1_SQRT_2;
 
-use core::Object3D;
+use core::{Object3D, SceneObject};
 use objects::Sprite;
 use math::{Vector3, Plane, Sphere, Box3, Matrix4};
 
@@ -59,7 +59,7 @@ impl Frustum {
 
     pub fn intersects_sprite(&self, sprite: &Sprite) -> bool {
         let sphere = Sphere::new(&Vector3::ZERO, FRAC_1_SQRT_2)
-            .apply_matrix4(&sprite.scene_object.matrix_world);
+            .apply_matrix4(&sprite.scene_object().matrix_world);
         self.intersects_sphere(&sphere)
     }
 

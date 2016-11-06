@@ -1,5 +1,11 @@
-use core::Object3D;
+use core::{Object3D, SceneObject};
 
 pub struct Sprite {
-    pub scene_object: Object3D,
+    scene_object: Object3D,
+}
+
+impl SceneObject for Sprite {
+    fn scene_object(&self) -> &Object3D {
+        &self.scene_object
+    }
 }
