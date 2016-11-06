@@ -1,6 +1,6 @@
 use std::f32::consts::FRAC_1_SQRT_2;
 
-use core::{Object3D, SceneObject};
+use core::HasObject3D;
 use objects::Sprite;
 use math::{Vector3, Plane, Sphere, Box3, Matrix4};
 
@@ -43,13 +43,14 @@ impl Frustum {
         }
     }
 
-    pub fn intersects_object(&self, object: &Object3D) -> bool {
-        match object.geometry {
+    pub fn intersects_object<T: HasObject3D>(&self, object: &T) -> bool {
+        let scene_object = object.scene_object();
+        match scene_object.geometry {
             None => false,
-            Some(ref geometry) => {
+            Some(geometry) => {
                 let bounding_sphere = match geometry.bounding_sphere {
                     None => geometry.compute_bounding_sphere(),
-                    Some(ref bs) => bs.apply_matrix4(&object.matrix_world), 
+                    Some(ref bs) => bs.apply_matrix4(&scene_object.matrix_world), 
                 };
 
                 self.intersects_sphere(&bounding_sphere)

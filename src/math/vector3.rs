@@ -2,6 +2,7 @@ use std::f32::{INFINITY, NEG_INFINITY};
 
 use math::*;
 use cameras::*;
+use core::HasObject3D;
 
 #[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Vector3 {
@@ -170,12 +171,14 @@ impl Vector3 {
     }
 
     pub fn project(&self, camera: &Camera) -> Vector3 {
-        let matrix = camera.projection_matrix.multiply(&camera.transform.matrix_world.inverse());
+        let matrix = camera.projection_matrix
+            .multiply(&camera.scene_object().matrix_world.inverse());
         self.apply_projection(&matrix)
     }
 
     pub fn unproject(&self, camera: &Camera) -> Vector3 {
-        let matrix = camera.transform.matrix_world.multiply(&camera.projection_matrix.inverse());
+        let matrix =
+            camera.scene_object().matrix_world.multiply(&camera.projection_matrix.inverse());
         self.apply_projection(&matrix)
     }
 
