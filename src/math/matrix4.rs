@@ -3,7 +3,7 @@ use math::Euler;
 use math::EulerOrder;
 use math::Quaternion;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Copy,Clone)]
 pub struct Matrix4 {
     pub elements: [f32; 16],
 }

@@ -1,5 +1,6 @@
 use math::Sphere;
 
+#[derive(Debug,PartialEq)]
 pub struct Geometry {
     pub bounding_sphere: Option<Sphere>,
 }

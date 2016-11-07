@@ -47,7 +47,7 @@ impl Frustum {
         let scene_object = object.scene_object();
         match scene_object.geometry {
             None => false,
-            Some(geometry) => {
+            Some(ref geometry) => {
                 let bounding_sphere = match geometry.bounding_sphere {
                     None => geometry.compute_bounding_sphere(),
                     Some(ref bs) => bs.apply_matrix4(&scene_object.matrix_world), 
